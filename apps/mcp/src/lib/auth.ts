@@ -1,0 +1,103 @@
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
+import { apiKey, mcp, oAuthProxy } from "better-auth/plugins";
+import dotenv from "dotenv";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon, neonConfig } from "@neondatabase/serverless";
+import * as schema from "../../auth-schema.js";
+import env, { getDatabaseUrl, getGitHubConfig, getTrustedOrigins, isTest, isProduction } from "../env.js";
+
+dotenv.config();
+
+const TRUSTED_ORIGINS = getTrustedOrigins();
+
+// Enable fetch connection cache to support transactional flows over Neon HTTP
+neonConfig.fetchConnectionCache = true;
+const sql = neon(getDatabaseUrl());
+export const db = drizzle(sql, { schema });
+
+const crossDomainConfig = () => {
+  const isDevelopment = env.NODE_ENV === "development" || env.NODE_ENV === "test";
+  if (isDevelopment) {
+    return {
+      crossSubDomainCookies: {
+        enabled: true,
+        domain: ".localhost"
+      },
+    }
+  }
+  return {
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: ".clawpay.tech"
+    },
+  }
+}
+
+export const auth = betterAuth({
+    baseURL: env.BETTER_AUTH_URL,
+    database: drizzleAdapter(db, {
+        provider: "pg"
+    }),
+    trustedOrigins: TRUSTED_ORIGINS,
+    emailAndPassword: {
+        enabled: true,
+    },
+    socialProviders: {
+        github: {
+          clientId: env.GITHUB_CLIENT_ID,
+          clientSecret: env.GITHUB_CLIENT_SECRET,
+        },
+        google: {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+        }
+    },
+      advanced: {
+        ...crossDomainConfig(),
+        useSecureCookies: true
+    },
+    plugins: [
+        apiKey({
+            enableSessionForAPIKeys: true,
+            enableMetadata: true,
+            rateLimit: {
+                enabled: false,
+            }
+        }),
+        mcp({
+            loginPage: "/connect",
+        })
+    ],
+    hooks: {
+        after: createAuthMiddleware(async (ctx) => {
+          const newSession = ctx.context.newSession;
+    
+          // Only proceed if we have a new session (successful authentication)
+          if (!newSession?.user?.id) {
+            return;
+          }
+    
+          const user = newSession.user;
+    
+          // Determine if this is likely a new user based on creation timestamp
+          const userCreatedAt = new Date(user.createdAt);
+          const now = new Date();
+          const timeSinceCreation = now.getTime() - userCreatedAt.getTime();
+          const isRecentlyCreated = timeSinceCreation < 60000; // Less than 1 minute old
+    
+          // Log user info for debugging
+          console.log(`[AUTH HOOK] Processing authentication for user ${user.id}:`, {
+            email: user.email,
+            name: user.name,
+            createdAt: user.createdAt,
+            timeSinceCreation: `${Math.round(timeSinceCreation / 1000)}s`,
+            isRecentlyCreated,
+            sessionId: newSession.session.id
+          });
+
+          console.log(`[AUTH HOOK] Auth complete for user ${user.id} — Hedera wallet linking available via account modal`);
+        }),
+      },
+})
