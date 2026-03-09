@@ -1,0 +1,22 @@
+{
+  "name": "@clawpay/hedera-tools-example",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx --watch index.ts"
+  },
+  "dependencies": {
+    "@hashgraph/sdk": "^2.58.0",
+    "@hono/node-server": "^1.19.5",
+    "@clawpay-hedera/sdk": "workspace:*",
+    "hono": "^4.9.9",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.8.3"
+  }
+}
