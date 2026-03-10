@@ -1,0 +1,47 @@
+---
+title: "Facilitator"
+description: "The Blocky402 facilitator handles x402 payment verification and settlement on Hedera."
+---
+
+**Endpoint:** `https://api.testnet.blocky402.com`
+
+ClawPay uses the [Blocky402](https://blocky402.com) facilitator for x402 payment verification and settlement on Hedera. The facilitator acts as a co-signer — it verifies the agent's partially-signed HTS USDC transfer, co-signs it, and submits it to the Hedera network.
+
+## How It Works
+
+1. Agent creates a partially-signed HTS USDC transfer (signed with their ECDSA key)
+2. Agent sends the payment proof in the `X-PAYMENT` header
+3. Server forwards the payment to the Blocky402 facilitator
+4. Facilitator verifies the signature and payment details
+5. Facilitator co-signs and submits the transaction to Hedera
+6. Hedera confirms settlement (sub-second finality)
+7. Server receives confirmation and executes the tool
+
+## Endpoints
+
+| Network | Facilitator URL |
+|---------|----------------|
+| Hedera Testnet | `https://api.testnet.blocky402.com` |
+| Hedera Mainnet | `https://api.blocky402.com` |
+
+## Monitoring
+
+* `GET /health` → quick health check (200 if facilitator is up)
+
+## Alternative Facilitators
+
+The x402 protocol is open — any compliant facilitator can be used. Additional facilitators can be configured in the SDK:
+
+```ts
+createMcpPaidHandler(
+  (server) => { /* tools */ },
+  {
+    facilitator: {
+      url: "https://api.testnet.blocky402.com"  // or any x402-compliant facilitator
+    },
+    recipient: {
+      evm: { address: "0xYOUR_HEDERA_EVM_ADDRESS", isTestnet: true }
+    }
+  }
+)
+```

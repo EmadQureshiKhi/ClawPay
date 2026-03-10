@@ -1,0 +1,143 @@
+---
+title: "SDK"
+description: "The ClawPay TypeScript SDK for x402 + MCP on Hedera"
+---
+
+The SDK gives you full control to define tools (free or paid), wire pricing, and integrate from clients. It handles **x402** automatically with native Hedera HTS USDC payments.
+
+## Features
+
+- **Built natively on Hedera** (HTS USDC + HCS audit trails)
+- **Extensible with plugins**
+- **Simple x402 setup**
+- **CLI included** for quick agent connections
+- **Open source**
+
+### Supported Networks
+
+- **Hedera Testnet** (token ID: `0.0.5449` for USDC)
+- **Hedera Mainnet** (token ID: `0.0.456858` for USDC)
+
+---
+
+# Creating a Server
+
+You can use `createMcpPaidHandler` and plug it into any popular framework like Express, Hono, Next.js, and others.
+
+<Tabs items={['npm', 'pnpm', 'bun']}>
+  <Tab value="npm">npm i @clawpay-hedera/sdk @modelcontextprotocol/sdk zod@3</Tab>
+  <Tab value="pnpm">pnpm add @clawpay-hedera/sdk @modelcontextprotocol/sdk zod@3</Tab>
+  <Tab value="bun">bun add @clawpay-hedera/sdk @modelcontextprotocol/sdk zod@3</Tab>
+</Tabs>
+
+## Hono
+
+Here's how you can create a paid MCP server:
+
+```ts
+import { Hono } from "hono"
+import { createMcpPaidHandler } from "@clawpay-hedera/sdk/handler"
+import { z } from "zod"
+
+const app = new Hono()
+
+const handler = createMcpPaidHandler(
+    (server) => {
+        server.paidTool(
+            "weather",
+            "Paid tool — get weather for a city",
+            "$0.001",
+            { city: z.string() },
+            {},
+            async ({ city }) => ({
+                content: [{ type: "text", text: `The weather in ${city} is sunny` }],
+            })
+        )
+
+        server.tool(
+            "free_tool",
+            "Free to use",
+            { s: z.string(), city: z.string() },
+            async ({ s, city }) => ({
+                content: [{ type: "text", text: `We support ${city}` }],
+            })
+        )
+    },
+    {
+        facilitator: {
+            url: "https://api.testnet.blocky402.com"
+        },
+        recipient: {
+            evm: { address: "0xYOUR_HEDERA_EVM_ADDRESS", isTestnet: true }
+        }
+    },
+    {
+        serverInfo: { name: "paid-mcp", version: "1.0.0" },
+    },
+)
+
+app.use("*", (c) => handler(c.req.raw))
+
+export default app
+```
+
+---
+
+# Client: X402 Payment Wrapper
+
+Using `withX402Client` you can intercept and make payment requests in your MCP Client. The client automatically handles the 402 → pay → retry flow using Hedera.
+
+```ts
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { withX402Client } from "@clawpay-hedera/sdk/client";
+
+const client = new Client({
+  name: "example-client",
+  version: "1.0.0",
+});
+
+const MCP_SERVER_URL = "http://localhost:3000/mcp"
+const transport = new StreamableHTTPClientTransport(new URL(MCP_SERVER_URL));
+await client.connect(transport);
+
+// Wrap with Hedera x402 payment capabilities
+const paymentClient = withX402Client(client, {
+  wallet: {},
+  hederaConfig: {
+    privateKey: process.env.HEDERA_PRIVATE_KEY,
+    network: 'testnet',
+    payerAccountId: process.env.HEDERA_ACCOUNT_ID,
+    facilitatorFeePayer: '0.0.7162784',
+  },
+  maxPaymentValue: BigInt(100000),
+  confirmationCallback: async () => true,
+});
+
+// List tools
+const tools = await paymentClient.listTools();
+console.log("Tools:", JSON.stringify(tools, null, 2));
+
+// Call a paid tool — payment happens automatically
+const res = await paymentClient.callTool({
+  name: "weather",
+  arguments: { city: "Dubai" },
+});
+console.log("Result:", res);
+```
+
+---
+
+# CLI
+
+The CLI lets any MCP-compatible client (Claude Desktop, Cursor, etc.) connect to paid servers with automatic Hedera payments:
+
+```bash
+npx @clawpay-hedera/sdk connect \
+  --urls http://localhost:3000/mcp \
+  --hedera-key 0xYOUR_ECDSA_PRIVATE_KEY \
+  --hedera-account 0.0.YOUR_ACCOUNT_ID \
+  --hedera-network hedera-testnet
+```
+
+This starts an stdio MCP proxy that handles x402 payments automatically. Any MCP client can connect to it.

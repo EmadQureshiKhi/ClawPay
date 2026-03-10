@@ -1,0 +1,61 @@
+---
+title: Examples
+---
+
+## Hedera Tools Server
+
+A full MCP server with 16 paid tools on Hedera — gasless write operations, smart analytics, and basic reads. All paid in USDC via x402.
+
+```bash
+cd examples/hedera-tools
+npx tsx index.ts
+# Server runs on http://localhost:3000/mcp
+```
+
+[View source](https://github.com/EmadQureshiKhi/ClawPay/tree/main/examples/hedera-tools)
+
+---
+
+## VLayer Client Example
+
+An MCP client that connects to a paid server, pays with USDC on Hedera, and optionally receives cryptographic web proofs via vlayer.
+
+```bash
+cd examples/vlayer-client-example
+cp env.example .env
+# Edit .env with your Hedera credentials
+pnpm start
+```
+
+[View source](https://github.com/EmadQureshiKhi/ClawPay/tree/main/examples/vlayer-client-example)
+
+---
+
+## ChatGPT Apps SDK Starter
+
+A Next.js app that exposes an MCP server compatible with OpenAI's ChatGPT Apps SDK. ChatGPT can call your tools and render results as native widgets.
+
+```bash
+cd examples/chatgpt-apps-sdk-nextjs-starter
+pnpm install
+pnpm dev
+# Server runs on http://localhost:3000/mcp
+```
+
+[View source](https://github.com/EmadQureshiKhi/ClawPay/tree/main/examples/chatgpt-apps-sdk-nextjs-starter)
+
+---
+
+## E2E Payment Test
+
+Run the full payment flow against the Hedera testnet:
+
+```bash
+# Start the example server
+npx tsx examples/hedera-tools/index.ts
+
+# Run the test suite (in another terminal)
+node test/npm-test/test.mjs
+```
+
+This tests: SDK imports, MCP connection, tool listing, free tool calls, 402 rejection, and full Hedera payment settlement.

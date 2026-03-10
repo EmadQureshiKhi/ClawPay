@@ -1,0 +1,139 @@
+---
+title: "FAQ"
+description: "Common questions about ClawPay, x402, and paid MCP tools on Hedera"
+---
+
+## General
+
+**What is ClawPay?**
+ClawPay is a **payment layer for MCP servers on Hedera**. It implements the [x402 protocol](https://x402.org), which lets any client (human app or AI agent) call a tool, get payment requirements with price metadata, pay in USDC on Hedera, and retry automatically.
+
+**Who is ClawPay for?**
+- **Providers** who want to **monetize per-call access** to their APIs/tools with USDC on Hedera.
+- **Agents/Integrators** who need **programmatic, per-request payments** without API keys or subscriptions.
+- **Builders** who want the **fastest path** to ship a paid MCP server on Hedera.
+
+**What's the ClawPay Registry?**
+A public catalog of MCP servers and their priced tools. It shows metadata, usage stats, and integration snippets. Browse at [Servers](https://clawpay.tech/servers).
+
+---
+
+## How it works
+
+**What is x402 and the 402 flow?**
+1. Client calls a protected tool.
+2. Server responds with `402` and metadata (`network, asset, amount, destination`).
+3. Client (or ClawPay SDK) **creates a partially-signed HTS USDC transfer**.
+4. Request is retried with payment proof in the `X-PAYMENT` header.
+5. Blocky402 facilitator verifies, co-signs, and submits to Hedera.
+6. Response succeeds.
+
+**Is this "Stripe for agents"?**
+It has a similar goal — enabling monetization — but different mechanics: no API keys, no subscriptions, no dashboards. It's **pay-per-call at protocol level**, natively understood by agents. Payments settle on Hedera with sub-second finality.
+
+**Can humans also pay?**
+Yes. If the request comes from a browser, wallet extensions or the ClawPay web proxy can complete the same 402 payment flow.
+
+---
+
+## Pricing & Business
+
+**What pricing models are supported?**
+- **Flat per call** (default).
+- **Tiered or per-tool** pricing.
+- **Dynamic pricing** <span style={{
+    display: "inline-block",
+    background: "#fff3e0",
+    color: "#ff9800",
+    fontWeight: 600,
+    fontStyle: "italic",
+    borderRadius: "4px",
+    padding: "2px 8px",
+    marginLeft: "6px",
+    fontSize: "0.95em",
+    border: "1px solid #ff9800"
+}}>coming soon</span>
+
+**Does ClawPay take a cut?**
+No — payments are routed **directly to your wallet**. ClawPay is open source and free to use. You pay only the Hedera network fees (fractions of a cent).
+
+**How much do I pay per transaction?**
+Each MCP tool sets its own price (e.g., $0.001 to $0.15). Hedera network fees are negligible — typically less than $0.001 per transaction.
+
+---
+
+## Payments, Wallets & Chains
+
+**Which chains/tokens are supported?**
+
+ClawPay is built natively on **Hedera**:
+- **USDC** (HTS token) — Testnet: `0.0.5449`, Mainnet: `0.0.456858`
+- **HBAR** — native Hedera token
+
+**What wallets can be used?**
+- **ECDSA private keys** via CLI or SDK (for dev/test and agent use).
+- **MetaMask** via Hedera's HashIO JSON-RPC relay (for web-based wallet linking).
+- **API keys** for proxy-based payment signing (no key exposure to agents).
+
+**How do I cap spend?**
+Set `maxPaymentValue` in the SDK (denominated in base units, e.g. 6 decimals for USDC). This ensures per-call spend cannot exceed a limit.
+
+---
+
+## Security & Reliability
+
+**Do you store private keys?**
+- In SDK/CLI mode, keys remain on your server/client.
+- With the web proxy flow, keys are encrypted with AES-256-GCM before storage and only decrypted server-side when signing payments.
+
+**What about audit trails?**
+Every payment event can be logged to a Hedera Consensus Service (HCS) topic, creating a tamper-proof, publicly verifiable record. View them on [HashScan](https://hashscan.io).
+
+---
+
+## SDK, CLI & DevEx
+
+**Which languages are supported?**
+Official **TypeScript SDK + CLI** (`@clawpay-hedera/sdk`). Any language can integrate by handling `402` and sending back an `X-PAYMENT` proof.
+
+**How do I integrate quickly?**
+With the CLI:
+
+```bash
+npx @clawpay-hedera/sdk connect \
+  --urls https://your-server.com/mcp \
+  --hedera-key 0xYOUR_KEY \
+  --hedera-account 0.0.YOUR_ACCOUNT
+```
+
+**How do I define paid tools in code?**
+
+Check the SDK [here](/quickstart/sdk)
+
+```ts
+import { createMcpPaidHandler } from "@clawpay-hedera/sdk/handler"
+
+export const paidMcp = createMcpPaidHandler(
+  async (server) => {
+    server.paidTool(
+      "hello",
+      "say hello",
+      "$0.001",
+      {},
+      async () => ({ content: [{ type: "text", text: "Hello, world!" }] })
+    )
+  },
+  {
+    facilitator: { url: "https://api.testnet.blocky402.com" },
+    recipient: { evm: { address: "0xYOUR_HEDERA_EVM_ADDRESS", isTestnet: true } }
+  }
+)
+```
+
+---
+
+## Legal
+
+**Are you affiliated with the APIs I wrap?**
+
+No. ClawPay is an integration layer. Wrapped APIs remain independent and subject to their own terms.

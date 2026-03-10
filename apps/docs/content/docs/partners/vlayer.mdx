@@ -1,0 +1,108 @@
+---
+title: "vlayer Web Proofs (zkTLS)"
+description: "Generate cryptographic proofs of tool calls using vlayer zkTLS technology"
+---
+
+vlayer provides zero-knowledge TLS (zkTLS) proofs for web requests, enabling you to generate cryptographic proofs of tool calls made through ClawPay. This allows you to verify that specific API calls were made without revealing sensitive data, creating a trustless verification layer for your MCP server interactions on Hedera.
+
+## What are Web Proofs?
+
+Web proofs are cryptographic attestations that prove a specific HTTP request was made and received a specific response, without revealing the full contents of the communication. vlayer uses zkTLS technology to generate these proofs, which can be verified independently by anyone.
+
+## How It Works
+
+When you enable vlayer for your ClawPay MCP requests:
+
+1. Your tool call is routed through vlayer notary service via the ClawPay proxy
+2. vlayer generates a cryptographic proof of the request and response
+3. The proof is attached to the MCP response in the metadata
+4. Anyone can verify the proof independently to confirm the request was made
+
+## Where vlayer Lives in ClawPay
+
+vlayer is fully integrated into the ClawPay platform, not just an example:
+
+- The core vlayer class in apps/mcp generates and validates web proofs
+- A web proof parser converts proof blobs into structured HTTP data
+- A proxy hook intercepts tool calls and routes them through vlayer when enabled
+- A client example demonstrates paid tool calls with web proofs attached
+
+## Enabling vlayer in Your Client
+
+Add the x-vlayer-enabled header to your transport to enable web proofs:
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { withX402Client } from "@clawpay-hedera/sdk/client";
+
+const client = new Client({
+  name: "vlayer-client-example",
+  version: "1.0.0",
+});
+
+
+const transport = new StreamableHTTPClientTransport(
+  new URL("http://localhost:3000/mcp"),
+  {
+    requestInit: {
+      headers: {
+        "x-vlayer-enabled": "true",
+      },
+    },
+  }
+);
+
+await client.connect(transport);
+
+const paymentClient = withX402Client(client, {
+  wallet: {},
+  hederaConfig: {
+    privateKey: process.env.HEDERA_PRIVATE_KEY,
+    network: "testnet",
+    payerAccountId: process.env.HEDERA_ACCOUNT_ID,
+    facilitatorFeePayer: "0.0.7162784",
+  },
+  maxPaymentValue: BigInt(100000),
+  confirmationCallback: async () => true,
+});
+
+const res = await paymentClient.callTool({
+  name: "hbar_account_balance",
+  arguments: { accountId: "0.0.6514537" },
+});
+
+// Check for web proof in response metadata
+if (res._meta?.["vlayer/proof"]) {
+  console.log("Web proof attached and verified!");
+}
+```
+
+## Key Features
+
+- Zero-Knowledge: Proofs do not reveal sensitive request or response data
+- Verifiable: Anyone can independently verify proofs
+- Transparent: Works seamlessly with existing ClawPay tool calls and Hedera payments
+- Trustless: No need to trust a third party, proofs are cryptographic
+- Chain-Agnostic: Proofs verify HTTP responses, independent of the payment layer
+- HCS Compatible: Combine with Hedera Consensus Service logging for a full tamper-proof audit trail
+
+## Use Cases
+
+- Audit Trails: Generate verifiable proofs of API calls, combine with HCS logging for a complete tamper-proof record on Hedera
+- Dispute Resolution: Prove that specific tool calls were made and what data was returned
+- Transparency: Enable users to verify what requests were made on their behalf
+- Security: Add an additional layer of cryptographic verification to paid tool calls
+- On-chain Verification: Proofs are compatible with vlayer Solidity verifiers for smart contract verification
+
+## Current Status
+
+vlayer v1.0 has been sunset as they prepare for vlayer Protocol v2.0, a major upgrade with server-side Web Proofs and full compatibility for vouch (client-side) Web Proofs. The ClawPay integration is fully built and ready. Once v2.0 launches and credentials are available, web proofs will generate automatically for any request with the vlayer header enabled.
+
+Without vlayer credentials, the hook gracefully disables itself. Hedera payments still work normally, you just do not get the proof attachment.
+
+## Learn More
+
+- [vlayer Documentation](https://vlayer.xyz) - Learn more about zkTLS and web proofs
+- [Example Repository](https://github.com/EmadQureshiKhi/ClawPay/tree/main/examples/vlayer-client-example) - Full working example
+- [ClawPay GitHub](https://github.com/EmadQureshiKhi/ClawPay) - Source code and more examples
