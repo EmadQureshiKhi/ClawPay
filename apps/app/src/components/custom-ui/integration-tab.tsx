@@ -345,7 +345,7 @@ console.log('Available tools:', tools)`
         },
         {
           text: 'ClawPay Package',
-          href: 'https://www.npmjs.com/package/clawpay',
+          href: 'https://www.npmjs.com/package/@clawpay-hedera/sdk',
           variant: 'internal',
           icon: Package
         }
