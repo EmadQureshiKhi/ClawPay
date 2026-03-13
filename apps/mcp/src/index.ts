@@ -65,7 +65,7 @@ app.use("*", cors({
         "X-Wallet-Address", 
         "X-Wallet-Provider",
         "x-vlayer-enabled",
-        "x-mcpay-target-url"
+        "x-clawpay-target-url"
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
@@ -610,9 +610,9 @@ async function resolveTargetUrl(req: Request, absoluteUrl?: string): Promise<str
     }
     
     // Check header first (case-insensitive)
-    const headerValue = req.headers.get("x-mcpay-target-url") 
-        ?? req.headers.get("X-MCPAY-TARGET-URL")
-        ?? req.headers.get("X-Mcpay-Target-Url");
+    const headerValue = req.headers.get("x-clawpay-target-url") 
+        ?? req.headers.get("X-CLAWPAY-TARGET-URL")
+        ?? req.headers.get("X-Clawpay-Target-Url");
     const queryValue = url.searchParams.get("target-url");
     const directUrlEncoded = headerValue ?? queryValue;
 
@@ -655,7 +655,7 @@ app.all("/mcp", async (c) => {
     const currentUrl = new URL(c.req.url);
     const targetUrlParam = currentUrl.searchParams.get("target-url");
     const hasId = !!currentUrl.searchParams.get("id");
-    const hasTargetUrlHeader = !!c.req.raw.headers.get("x-mcpay-target-url");
+    const hasTargetUrlHeader = !!c.req.raw.headers.get("x-clawpay-target-url");
     const shouldProxy = hasId || !!targetUrlParam || hasTargetUrlHeader;
     const original = c.req.raw;
     
@@ -675,7 +675,7 @@ app.all("/mcp", async (c) => {
         const targetUrl = await resolveTargetUrl(original, c.req.url);
         if (!targetUrl) {
             console.log("[MCP] Failed to resolve target URL. Headers:", {
-                "x-mcpay-target-url": original.headers.get("x-mcpay-target-url"),
+                "x-clawpay-target-url": original.headers.get("x-clawpay-target-url"),
                 "target-url-query": new URL(c.req.url).searchParams.get("target-url"),
             });
             return new Response("target-url missing", { status: 400 });

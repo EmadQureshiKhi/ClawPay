@@ -22,7 +22,7 @@ export class SecurityHook implements Hook {
             "x-supabase-key",
             "x-supabase-auth",
             "x-mcp-secret",
-            "x-mcpay-target-url",
+            "x-clawpay-target-url",
             "x-client-secret",
             "x-client-token",
             "x-sentry-auth",

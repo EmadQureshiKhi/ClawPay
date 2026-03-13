@@ -111,8 +111,8 @@ export async function POST(request: Request) {
     forwardHeaders.set(key, value)
   })
   // Pass target-url as header (base64-encoded) - this is what the MCP server expects
-  forwardHeaders.set('x-mcpay-target-url', base64TargetUrl)
-  console.log('Setting x-mcpay-target-url header:', base64TargetUrl.substring(0, 50) + '...')
+  forwardHeaders.set('x-clawpay-target-url', base64TargetUrl)
+  console.log('Setting x-clawpay-target-url header:', base64TargetUrl.substring(0, 50) + '...')
   // Ensure cookies are forwarded from Next headers API
   if (h.get('cookie')) {
     forwardHeaders.set('Cookie', h.get('cookie') || '')
@@ -149,12 +149,12 @@ export async function POST(request: Request) {
     forwardHeaders.delete('mcp-session-id')
   }
 
-  const targetUrlHeaderValue = forwardHeaders.get('x-mcpay-target-url')
+  const targetUrlHeaderValue = forwardHeaders.get('x-clawpay-target-url')
   console.log('Forwarding to MCP server with headers:', {
-    'x-mcpay-target-url': targetUrlHeaderValue ? (targetUrlHeaderValue.substring(0, 50) + '... (full length: ' + targetUrlHeaderValue.length + ')') : 'MISSING',
+    'x-clawpay-target-url': targetUrlHeaderValue ? (targetUrlHeaderValue.substring(0, 50) + '... (full length: ' + targetUrlHeaderValue.length + ')') : 'MISSING',
     'content-type': forwardHeaders.get('content-type'),
     'authorization': forwardHeaders.get('authorization') ? 'present' : 'missing',
-    'all-headers': Array.from(forwardHeaders.entries()).map(([k, v]) => [k, k === 'x-mcpay-target-url' ? v.substring(0, 30) + '...' : v.substring(0, 30)]),
+    'all-headers': Array.from(forwardHeaders.entries()).map(([k, v]) => [k, k === 'x-clawpay-target-url' ? v.substring(0, 30) + '...' : v.substring(0, 30)]),
   })
 
   const response = await fetch(mcpUrl, {
@@ -238,7 +238,7 @@ export async function GET(request: Request) {
     forwardHeaders.set(key, value)
   })
   // Pass target-url as header (base64-encoded) - this is what the MCP server expects
-  forwardHeaders.set('x-mcpay-target-url', base64TargetUrl)
+  forwardHeaders.set('x-clawpay-target-url', base64TargetUrl)
   if (h.get('cookie')) {
     forwardHeaders.set('Cookie', h.get('cookie') || '')
   }

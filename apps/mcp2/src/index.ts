@@ -65,7 +65,7 @@ async function resolveTargetUrl(req: Request, absoluteUrl?: string): Promise<str
         }
     }
 
-    const directEncoded = req.headers.get("x-mcpay-target-url") ?? url.searchParams.get("target-url");
+    const directEncoded = req.headers.get("x-clawpay-target-url") ?? url.searchParams.get("target-url");
     if (directEncoded) {
         try {
             const decoded = atob(decodeURIComponent(directEncoded));
@@ -256,8 +256,8 @@ app.all("/mcp", async (c) => {
 
     // Ensure the proxy receives a base64 target-url header
     const headers = new Headers(original.headers);
-    if (targetUrl && !headers.get("x-mcpay-target-url")) {
-        headers.set("x-mcpay-target-url", btoa(targetUrl));
+    if (targetUrl && !headers.get("x-clawpay-target-url")) {
+        headers.set("x-clawpay-target-url", btoa(targetUrl));
     }
 
     // Use absolute URL from Hono context instead of original.url which might be relative
